@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Uke-Griffe</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Uke-Griffe">
+<meta name="theme-color" content="#f6f1e7">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root {
+    --bg: #f6f1e7; --card: #fffdf8; --ink: #2b2420; --muted: #8a7f74;
+    --line: #d9cfc1; --accent: #c2561f; --accent-ink: #fff; --dot: #2b2420;
+    --chip: #ece4d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1a18; --card: #26231f; --ink: #f3ece2; --muted: #a89c8f;
+      --line: #4a443d; --accent: #e07a3f; --accent-ink: #1c1a18; --dot: #f3ece2;
+      --chip: #332f2a;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 17px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    display: flex; flex-direction: column;
+  }
+  header { display: flex; align-items: center; gap: 12px; padding: 12px 16px 6px; flex-wrap: wrap; }
+  h1 { font-size: 20px; margin: 0 auto 0 0; letter-spacing: .2px; }
+  .seg { display: inline-flex; background: var(--chip); border-radius: 10px; padding: 3px; }
+  .seg button { border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 14px;
+    padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+  .seg button.on { background: var(--card); box-shadow: 0 1px 2px rgba(0,0,0,.15); font-weight: 600; }
+  .btn { border: 0; font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 12px; cursor: pointer;
+    background: var(--accent); color: var(--accent-ink); }
+  .search { padding: 6px 16px 0; }
+  .search form { display: flex; gap: 8px; }
+  .search input {
+    flex: 1; font: inherit; font-size: 22px; padding: 12px 14px; border-radius: 12px;
+    border: 2px solid var(--line); background: var(--card); color: var(--ink); outline: none; min-width: 0;
+  }
+  .search input:focus { border-color: var(--accent); }
+  .msg { min-height: 22px; font-size: 14px; color: var(--muted); padding: 4px 18px 0; }
+  .msg.err { color: var(--accent); }
+  .sugg {
+    display: flex; gap: 8px; overflow-x: auto; padding: 6px 16px 10px; scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sugg:empty { display: none; }
+  .s-card {
+    flex: 0 0 auto; width: 92px; background: var(--card); border: 2px solid var(--line); border-radius: 12px;
+    padding: 6px 6px 4px; text-align: center; cursor: pointer; color: var(--ink); font: inherit;
+  }
+  .s-card:first-child { border-color: var(--accent); }
+  .s-card.added { opacity: .45; }
+  .s-card .n { font-weight: 700; font-size: 16px; }
+  .s-card .sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .s-card svg { width: 64px; height: auto; display: block; margin: 2px auto 0; }
+  main { flex: 1; padding: 6px 16px 16px; overflow: auto; }
+  .canvas { display: grid; gap: 14px; align-content: start; }
+  .card {
+    position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 12px 10px 10px; text-align: center; animation: pop .18s ease-out;
+  }
+  @keyframes pop { from { transform: scale(.94); opacity: 0; } to { transform: none; opacity: 1; } }
+  .card .n { font-weight: 800; font-size: clamp(22px, 4vw, 40px); line-height: 1.1; }
+  .card .sub { font-size: clamp(12px, 1.6vw, 16px); color: var(--muted); }
+  .card svg { width: 100%; max-width: 230px; max-height: max(110px, var(--svgmax, 52vh)); height: auto; display: block; margin: 6px auto 0; }
+  .card .x {
+    position: absolute; top: 6px; right: 6px; width: 32px; height: 32px; border-radius: 50%; border: 0;
+    background: var(--chip); color: var(--muted); font-size: 18px; line-height: 32px; cursor: pointer; padding: 0;
+  }
+  @media (max-width: 699px) {
+    .card { padding: 22px 4px 8px; }
+    .card .x { width: 24px; height: 24px; line-height: 24px; font-size: 15px; top: 4px; right: 4px; }
+    .search input { font-size: 19px; }
+  }
+  .empty { color: var(--muted); text-align: center; padding: 48px 20px; font-size: 18px; }
+  .empty b { color: var(--ink); }
+  .note { font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎶 Uke-Griffe</h1>
+  <div class="seg" role="group" aria-label="Bedeutung von B">
+    <button type="button" data-b="en" title="Amerikanisch: B = H, Bb = deutsches B">B = H (USA)</button>
+    <button type="button" data-b="de" title="Deutsch: B = Bb, H = H">B = Bb (DE)</button>
+  </div>
+  <button type="button" class="btn" id="clear">Leinwand neu</button>
+</header>
+
+<div class="search">
+  <form id="f" autocomplete="off">
+    <input id="q" type="text" inputmode="text" enterkeyhint="done" autocapitalize="off" autocorrect="off"
+      spellcheck="false" placeholder="Akkord tippen … z. B. G Am Fis">
+  </form>
+</div>
+<div class="msg" id="msg"></div>
+<div class="sugg" id="sugg"></div>
+
+<main>
+  <div class="canvas" id="canvas"></div>
+</main>
+
+<script>
+/* ---------- Griff-Daten (Stimmung G C E A, Bünde je Saite G-C-E-A) ---------- */
+// Index = Tonklasse: 0=C 1=C# 2=D 3=Eb 4=E 5=F 6=F# 7=G 8=Ab 9=A 10=Bb 11=B(H)
+const QUALS = [
+  { id: '',     suf: '',     de: '-Dur', al: ['', 'dur'],
+    sh: ['0003','1114','2220','0331','1402','2010','3121','0232','5343','2100','3211','4322'] },
+  { id: 'm',    suf: 'm',    de: '-Moll', al: ['m', 'mi', 'min', 'moll', 'minor'],
+    sh: ['0333','1104','2210','3321','0432','1013','2120','0231','4342','2000','3111','4222'] },
+  { id: '7',    suf: '7',    de: '7', al: ['7', 'dur7', 'dom7'],
+    sh: ['0001','1112','2223','3334','1202','2310','3424','0212','1323','0100','1211','2322'] },
+  { id: 'm7',   suf: 'm7',   de: '-Moll 7', al: ['m7', 'mi7', 'min7', 'moll7'],
+    sh: ['3333','1102','2213','3324','0202','1313','2424','0211','1322','0000','1111','2222'] },
+  { id: 'maj7', suf: 'maj7', de: 'maj7', al: ['maj7', 'ma7', 'j7', 'major7', 'δ', 'δ7'],
+    sh: ['0002','1113','2224','3335','1302','2410','3521','0222','1333','1100','3210','4321'] },
+  { id: '6',    suf: '6',    de: '6', al: ['6', 'dur6'],
+    sh: ['0000','1111','2222','3333','4444','2213','3324','0202','1313','2424','0211','1322'] },
+  { id: 'm6',   suf: 'm6',   de: '-Moll 6', al: ['m6', 'mi6', 'min6', 'moll6'],
+    sh: ['2333','1101','2212','3323','0102','1213','2324','0201','1312','2423','0111','1222'] },
+  { id: 'sus4', suf: 'sus4', de: 'sus4', al: ['sus4', 'sus'],
+    sh: ['0013','1124','0230','1341','2402','3013','4124','0233','1344','2200','3311','4422'] },
+  { id: 'sus2', suf: 'sus2', de: 'sus2', al: ['sus2'],
+    sh: ['0233','1344','2200','3311','4422','0013','1124','0230','1341','2452','3013','4124'] },
+  { id: 'dim',  suf: 'dim',  de: 'dim', al: ['dim', 'dim7', '°', '°7', 'o', 'o7'], note: 'als dim7 gegriffen',
+    sh: Array.from({ length: 12 }, (_, pc) => ['2323', '0101', '1212'][pc % 3]) },
+  { id: 'aug',  suf: 'aug',  de: 'aug', al: ['aug', '+', '+5', 'aug5'],
+    sh: Array.from({ length: 12 }, (_, pc) => ['1003', '2110', '3221', '0332'][pc % 4]) },
+];
+
+const NAME_EN = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+const NAME_DE = ['C','Cis','D','Es','E','F','Fis','G','As','A','B','H'];
+const ALT_EN  = { 1: 'Db', 3: 'D#', 6: 'Gb', 8: 'G#', 10: 'A#' };
+
+function rootAliases(pc, bMode) {
+  const base = {
+    0: ['c'], 1: ['c#', 'cis', 'db', 'des'], 2: ['d'], 3: ['eb', 'es', 'd#', 'dis'], 4: ['e'], 5: ['f'],
+    6: ['f#', 'fis', 'gb', 'ges'], 7: ['g'], 8: ['ab', 'as', 'g#', 'gis'], 9: ['a'],
+    10: ['bb', 'a#', 'ais', 'hb'], 11: ['h'],
+  }[pc].slice();
+  if (pc === 10 && bMode === 'de') base.push('b');
+  if (pc === 11 && bMode === 'en') base.push('b');
+  return base;
+}
+
+function normalize(s) {
+  return s.toLowerCase()
+    .replace(/♯/g, '#').replace(/♭/g, 'b').replace(/Δ/gi, 'δ')
+    .split('/')[0]                       // Slash-Akkorde: G/B -> G
+    .replace(/[\s\-_.()]/g, '');
+}
+
+function buildChords(bMode) {
+  const list = [];
+  for (let pc = 0; pc < 12; pc++) {
+    const ras = rootAliases(pc, bMode);
+    QUALS.forEach((q, qi) => {
+      const pairs = [];
+      ras.forEach(ra => q.al.forEach(qa => pairs.push([ra, qa])));
+      list.push({ pc, qi, key: pc + ':' + q.id, pairs, frets: q.sh[pc] });
+    });
+  }
+  return list;
+}
+
+function chordName(pc, qi, bMode) {
+  const q = QUALS[qi];
+  if (bMode === 'de') return NAME_DE[pc] + q.suf;
+  return NAME_EN[pc] + q.suf;
+}
+function chordSub(pc, qi, bMode) {
+  const q = QUALS[qi];
+  const parts = [];
+  if (bMode === 'de') {
+    parts.push((pc === 10 ? 'Bb' : pc === 11 ? 'B (engl.)' : NAME_EN[pc]) + q.suf);
+  } else {
+    let de = NAME_DE[pc];
+    if (q.id === 'm' || q.id === 'm7' || q.id === 'm6') de = de.toLowerCase();
+    parts.push(de + q.de);
+  }
+  if (ALT_EN[pc]) parts.push(ALT_EN[pc] + q.suf);
+  if (q.note) parts.push(q.note);
+  return parts.join(' · ');
+}
+
+// Suche: liefert passende Akkorde, beste zuerst
+function search(chords, raw) {
+  const q = normalize(raw);
+  if (!q) return [];
+  const hits = [];
+  for (const c of chords) {
+    let exact = false, best = -1;
+    for (const [ra, qa] of c.pairs) {
+      const full = ra + qa;
+      if (!full.startsWith(q)) continue;
+      if (full === q) exact = true;
+      const rootFull = ra.length <= q.length;
+      const score = rootFull ? 10 + ra.length : Math.min(ra.length, q.length);
+      if (score > best) best = score;
+    }
+    if (best >= 0) hits.push({ c, exact, best });
+  }
+  hits.sort((a, b) => (b.exact - a.exact) || (b.best - a.best) || (a.c.pc - b.c.pc) || (a.c.qi - b.c.qi));
+  return hits;
+}
+
+// Nur-Qualität-Token wie "moll", "m", "7", "dur" (für Eingaben wie "fis moll")
+function qualityOnly(raw) {
+  const q = normalize(raw);
+  if (!q) return -1;
+  return QUALS.findIndex(Q => Q.al.includes(q) && q !== '');
+}
+
+/* ---------- Griffbild (SVG) ---------- */
+function diagram(frets) {
+  const f = frets.split('').map(Number);
+  const pressed = f.filter(x => x > 0);
+  const max = Math.max(0, ...f);
+  let base = 1, nf = Math.max(4, max);
+  if (max > 5) { base = Math.min(...pressed); nf = Math.max(4, max - base + 1); }
+  const L = 22, R = 82, top = 14, gap = 22, sx = (R - L) / 3;
+  const H = top + nf * gap + 8;
+  let s = `<svg viewBox="0 0 100 ${H}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`;
+  s += `<g stroke="currentColor" stroke-width="1.3" opacity=".55">`;
+  for (let i = 0; i <= nf; i++) s += `<line x1="${L}" x2="${R}" y1="${top + i * gap}" y2="${top + i * gap}"/>`;
+  for (let i = 0; i < 4; i++) s += `<line x1="${L + i * sx}" x2="${L + i * sx}" y1="${top}" y2="${top + nf * gap}"/>`;
+  s += `</g>`;
+  if (base === 1) s += `<line x1="${L - .6}" x2="${R + .6}" y1="${top}" y2="${top}" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/>`;
+  else s += `<text x="${L - 7}" y="${top + gap / 2 + 4}" font-size="11" text-anchor="end" fill="currentColor" opacity=".7">${base}</text>`;
+  f.forEach((fr, i) => {
+    if (fr > 0) s += `<circle cx="${L + i * sx}" cy="${top + (fr - base + .5) * gap}" r="7.2" fill="var(--dot)"/>`;
+  });
+  return s + `</svg>`;
+}
+
+/* ---------- App ---------- */
+if (typeof document !== 'undefined') {
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('uke.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('uke.' + k, JSON.stringify(v)); } catch (e) {} },
+  };
+  let bMode = store.get('bMode', 'en');
+  let board = store.get('board', []);           // [{pc, qi}]
+  let chords = buildChords(bMode);
+
+  const $ = id => document.getElementById(id);
+  const input = $('q'), sugg = $('sugg'), canvas = $('canvas'), msg = $('msg');
+
+  function say(text, err) { msg.textContent = text || ''; msg.className = 'msg' + (err ? ' err' : ''); }
+  const onBoard = (pc, qi) => board.some(b => b.pc === pc && b.qi === qi);
+
+  function add(pc, qi) {
+    if (!onBoard(pc, qi)) board.push({ pc, qi });
+    store.set('board', board); renderBoard();
+  }
+  function changeLastQuality(qi) {
+    if (!board.length) return false;
+    const last = board[board.length - 1];
+    board.pop();
+    if (!onBoard(last.pc, qi)) board.push({ pc: last.pc, qi });
+    store.set('board', board); renderBoard();
+    return true;
+  }
+
+  function renderBoard() {
+    const n = board.length;
+    if (!n) {
+      canvas.style.gridTemplateColumns = '1fr';
+      canvas.innerHTML = `<div class="empty">Tippe oben einen Akkord vom Liedblatt ein.<br>
+        <b>Leertaste</b> oder <b>Enter</b> fügt den umrandeten Griff hinzu – oder tippe auf einen Vorschlag.</div>`;
+      return;
+    }
+    const narrow = window.innerWidth < 700;
+    const cols = narrow ? (n <= 2 ? n : n <= 4 ? 2 : 3) : (n <= 6 ? n : n <= 8 ? 4 : n <= 10 ? 5 : 6);
+    const rows = Math.ceil(n / cols);
+    canvas.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+    canvas.style.setProperty('--svgmax', `calc((100vh - 230px) / ${rows} - 80px)`);
+    canvas.innerHTML = board.map((b, i) => `
+      <div class="card">
+        <button class="x" data-i="${i}" aria-label="Entfernen">×</button>
+        <div class="n">${chordName(b.pc, b.qi, bMode)}</div>
+        <div class="sub">${chordSub(b.pc, b.qi, bMode)}</div>
+        ${diagram(QUALS[b.qi].sh[b.pc])}
+      </div>`).join('');
+  }
+
+  // Eingabe: immer ein Akkord. Leertaste oder Enter bestätigt.
+  // "moll", "m", "7", "dur" … allein ändern den zuletzt hinzugefügten Akkord (für "fis moll").
+  function renderSugg() {
+    const tok = input.value;
+    const hits = search(chords, tok).slice(0, 40);
+    sugg.innerHTML = hits.map(h => `
+      <button type="button" class="s-card${onBoard(h.c.pc, h.c.qi) ? ' added' : ''}" data-pc="${h.c.pc}" data-qi="${h.c.qi}">
+        <div class="n">${chordName(h.c.pc, h.c.qi, bMode)}</div>
+        <div class="sub">${chordSub(h.c.pc, h.c.qi, bMode).split(' · ')[0]}</div>
+        ${diagram(h.c.frets)}
+      </button>`).join('');
+    sugg.scrollLeft = 0;
+    if (normalize(tok) && !hits.length && !(qualityOnly(tok) >= 0 && board.length)) say(`„${tok.trim()}“ kenne ich nicht.`, true);
+    else say('');
+  }
+
+  function confirmInput(text) {
+    if (!normalize(text)) { input.value = ''; renderSugg(); return; }
+    const hits = search(chords, text);
+    const qi = qualityOnly(text);
+    if (hits.length && hits[0].exact) add(hits[0].c.pc, hits[0].c.qi);
+    else if (qi >= 0 && board.length) changeLastQuality(qi);
+    else if (hits.length) add(hits[0].c.pc, hits[0].c.qi);
+    else { input.value = text.trim(); renderSugg(); say(`„${text.trim()}“ kenne ich nicht.`, true); return; }
+    input.value = '';
+    renderSugg();
+  }
+
+  input.addEventListener('input', () => {
+    const m = input.value.match(/^([^\s,;]*)[\s,;]/);
+    if (m) confirmInput(m[1]); else renderSugg();
+  });
+  $('f').addEventListener('submit', e => { e.preventDefault(); confirmInput(input.value); });
+
+  sugg.addEventListener('click', e => {
+    const b = e.target.closest('.s-card'); if (!b) return;
+    add(+b.dataset.pc, +b.dataset.qi);
+    input.value = '';
+    say(''); renderSugg(); input.focus();
+  });
+  canvas.addEventListener('click', e => {
+    const x = e.target.closest('.x'); if (!x) return;
+    board.splice(+x.dataset.i, 1); store.set('board', board); renderBoard(); renderSugg();
+  });
+  $('clear').addEventListener('click', () => {
+    board = []; store.set('board', board); input.value = ''; say(''); renderBoard(); renderSugg(); input.focus();
+  });
+
+  function setB(m) {
+    bMode = m; store.set('bMode', m); chords = buildChords(m);
+    document.querySelectorAll('.seg button').forEach(b => b.classList.toggle('on', b.dataset.b === m));
+    renderBoard(); renderSugg();
+  }
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setB(b.dataset.b)));
+
+  setB(bMode);
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(renderBoard, 150); });
+
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+}
+</script>
+</body>
+</html>
